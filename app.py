@@ -1,8 +1,7 @@
 import requests
 import streamlit as st
-import sys
 
-base_url = "https://pokeapi.co/api/v2/"
+base_url = "https://pokeapi.co/api/v2"
 
 def get_pokemon_data(name):
     url = "{}/pokemon/{}/".format(base_url, name)
@@ -10,21 +9,22 @@ def get_pokemon_data(name):
     try:
         response = requests.get(url)
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Failed to retrieve data. Please make sure the pokemon name is valid. Status Code {response.status_code}")
-        return None
-    else:
-        if response.status_code == 200:
-            pokemon_data = response.json()
-            return pokemon_data
+        pokemon_data = response.json()
+        return pokemon_data
+    except requests.exceptions.HTTPError as http_err:
+        st.error(f"Invalid Pokémon name. Please check your input. (HTTP {http_err})")
+    except requests.exceptions.RequestException as req_err:
+        st.error("Failed to retrieve data. Please check your internet connection.")
+    
+    return None
 
 st.set_page_config(page_title="Pokemon", layout="wide", initial_sidebar_state="expanded")
-pokemon = st.sidebar.text_input("Enter a pokemon name:")
-btn = st.sidebar.button("search stats")
+pokemon = st.sidebar.text_input("Enter a Pokémon name:")
+btn = st.sidebar.button("Search Stats")
 
 if btn:
     if pokemon:
-        pokemon_data = get_pokemon_data(pokemon)
+        pokemon_data = get_pokemon_data(pokemon.strip().lower())
 
         if pokemon_data:
             name = pokemon_data["name"]
@@ -33,14 +33,14 @@ if btn:
             img = pokemon_data["sprites"]["other"]["official-artwork"]["front_default"]
             audio = pokemon_data["cries"]["latest"]
 
-            st.title(name.capitalize())
+            st.title(name.strip().capitalize())
             st.image(img)
 
             st.divider()
 
             st.subheader("Stats")
             cols= st.columns(len(base_stats))
-            for (i, col),(stat,val) in zip(enumerate(cols),base_stats):
+            for col,(stat,val) in zip(cols,base_stats):
                 col.metric(stat.upper(),value=val,border=True)
             
             st.divider()
@@ -56,4 +56,4 @@ if btn:
             col1.audio(audio)
 
     else: 
-        st.warning("Please Enter a Pokemon")
+        st.warning("Please enter a Pokémon name.")
